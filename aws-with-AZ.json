@@ -1,0 +1,455 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Description" : "AWS template to launch ec2 instance in private subnet",
+    "Parameters": {
+        "VPCCIDR" : {            
+            "Type" : "String",
+            "Default": "10.0.0.0/16",
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",            
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28",
+            "Description": "CIDR block for VPC"
+        },        
+        "PrivateSubnet1ACIDR" : {            
+            "Type" : "String",
+            "Default": "10.0.10.0/24",
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",            
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28",
+            "Description": "CIDR block for private subnet"
+        },
+        "PrivateSubnet1BCIDR" : {            
+            "Type" : "String",
+            "Default": "10.0.11.0/24",
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",            
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28",
+            "Description": "CIDR block for private subnet"
+        },
+        "PrivateSubnet1CCIDR" : {            
+            "Type" : "String",
+            "Default": "10.0.12.0/24",
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",            
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28",
+            "Description": "CIDR block for private subnet"
+        },              
+        "PublicSubnet1ACIDR" : {            
+            "Type" : "String",
+            "Default": "10.0.20.0/24",
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",            
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28",
+            "Description": "CIDR block for private subnet"
+        },
+        "PublicSubnet1BCIDR" : {            
+            "Type" : "String",
+            "Default": "10.0.21.0/24",
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",            
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28",
+            "Description": "CIDR block for private subnet"
+        },        
+		"RemoteAccessCIDR": {
+		    "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+		    "Type": "String",
+		    "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
+		    "Description": "Allowed CIDR block for external SSH access to the bastions"
+        },
+        "BastionInstanceType" : {
+            "Type" : "String",
+            "Default" : "t2.micro",
+            "AllowedValues" : ["t2.nano","t2.micro", "t2.small", "t2.medium", "t2.large", "m3.large", "m1.small", "m1.xlarge", "m2.xlarge", "m2.2xlarge", "m2.4xlarge", "m3.xlarge", "m3.2xlarge", "c1.medium", "c1.xlarge"],
+            "ConstraintDescription": "must be a valid EC2 instance type"
+        },
+        "NodeInstanceType" : {
+            "Type" : "String",
+            "Default" : "t2.micro",
+            "AllowedValues" : ["t2.nano","t2.micro", "t2.small", "t2.medium", "t2.large", "m3.large", "m1.small", "m1.xlarge", "m2.xlarge", "m2.2xlarge", "m2.4xlarge", "m3.xlarge", "m3.2xlarge", "c1.medium", "c1.xlarge"],
+            "ConstraintDescription": "must be a valid EC2 instance type"
+        },       
+        "AvailabilityZone1":{  
+            "Description":"The first availability zones where the resources will be initiated",
+            "Type":"AWS::EC2::AvailabilityZone::Name",
+            "ConstraintDescription":"Must be a valid availability zones. Ex: us-east-1a"
+        },
+        "AvailabilityZone2":{  
+            "Description":"The first availability zones where the resources will be initiated",
+            "Type":"AWS::EC2::AvailabilityZone::Name",
+            "ConstraintDescription":"Must be a valid availability zones. Ex: us-east-1b"
+        },
+        "AvailabilityZone3":{  
+            "Description":"The first availability zones where the resources will be initiated",
+            "Type":"AWS::EC2::AvailabilityZone::Name",
+            "ConstraintDescription":"Must be a valid availability zones. Ex: us-east-1b"
+        },                          
+        "KeyName" : {
+            "Description" : "EC2 Key Pair for SSH Access",
+            "Type": "AWS::EC2::KeyPair::KeyName",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "AllowedPattern" : "[-_ a-zA-Z0-9]*",
+            "ConstraintDescription" : "can contain only alphanumeric characters, spaces, dashes and underscores."
+        }
+        
+    }, 
+
+    "Mappings" : {
+        "AWSInstanceMapping" : {
+          "t2.micro"    : { "Arch" : "64" },
+          "t2.small"    : { "Arch" : "64" },
+          "t2.medium"   : { "Arch" : "64" },
+          "t2.large"    : { "Arch" : "64" },
+          "m3.medium"   : { "Arch" : "64" },
+          "m4.large"    : { "Arch" : "64" },
+          "m4.xlarge"   : { "Arch" : "64" },
+          "m4.2xlarge"  : { "Arch" : "64" }
+        },
+    
+        "ResgionArchAMI": {
+            "us-east-1": {
+                "32": "",
+                "64": "ami-00eb20669e0990cb4"
+            },
+            "us-east-2": {
+                "32": "",
+                "64": "ami-0c64dd618a49aeee8"
+            },
+            "us-west-1": {
+                "32": "",
+                "64": "ami-7a85a01a"
+            }
+        }
+    },
+    
+    "Resources": {
+
+        "MyTestVPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": { "Ref": "VPCCIDR" },
+                "EnableDnsHostnames": "false",
+                "EnableDnsSupport": "true",
+                "InstanceTenancy": "default",
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "TestVPC" ]]} }
+                ]
+            }            
+        },
+
+        "PublicSubnetA": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": { "Ref": "PublicSubnet1ACIDR" },
+                "AvailabilityZone": { "Ref":"AvailabilityZone1" },
+                "MapPublicIpOnLaunch": "true",
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "Public-SubnetA" ]]} },
+                    { "Key": "Network", "Value": "Public" }
+                ],
+                "VpcId": { "Ref": "MyTestVPC" }
+            }            
+        },
+
+        "PublicSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": { "Ref": "PublicSubnet1BCIDR" },
+                "AvailabilityZone": { "Ref":"AvailabilityZone2" },
+                "MapPublicIpOnLaunch": "true",
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "Public-SubnetB" ]]} },
+                    { "Key": "Network", "Value": "Public" }
+                ],
+                "VpcId": { "Ref": "MyTestVPC" }
+            }            
+        },        
+
+        "PrivateSubnetA": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": { "Ref": "PrivateSubnet1ACIDR" },
+                "AvailabilityZone": { "Ref":"AvailabilityZone1" },
+                "MapPublicIpOnLaunch": "false",
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "Private-SubnetA" ]]} },
+                    { "Key": "Network", "Value": "Private" }
+                ],
+                "VpcId": { "Ref": "MyTestVPC" }
+            }                                         
+        },
+
+        "PrivateSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": { "Ref": "PrivateSubnet1BCIDR" },
+                "AvailabilityZone": { "Ref":"AvailabilityZone2" },
+                "MapPublicIpOnLaunch": "false",
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "Private-SubnetB" ]]} },
+                    { "Key": "Network", "Value": "Private" }
+                ],
+                "VpcId": { "Ref": "MyTestVPC" }
+            }                                         
+        },
+
+        "PrivateSubnetC": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": { "Ref": "PrivateSubnet1CCIDR" },
+                "AvailabilityZone": { "Ref":"AvailabilityZone3" },
+                "MapPublicIpOnLaunch": "false",
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "Private-SubnetC" ]]} },
+                    { "Key": "Network", "Value": "Private" }
+                ],
+                "VpcId": { "Ref": "MyTestVPC" }
+            }                                         
+        },
+
+        "InternetGateway": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "IGW" ]]} },
+                    { "Key": "Network", "Value": "Public" }
+                ]
+            }             
+        },
+
+        "VPCGatewayAttachment": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "InternetGatewayId": { "Ref": "InternetGateway" },
+                "VpcId": { "Ref": "MyTestVPC" }
+            }            
+        },
+
+        "PublicRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": { "Ref": "MyTestVPC" },
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "Public-RT" ]]} },
+                    { "Key": "Network", "Value": "Public" }
+                ]
+            }           
+        },
+
+        "PublicSubnetRoutetableAAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PublicRouteTable" },
+                "SubnetId": { "Ref": "PublicSubnetA" }
+            }           
+        },
+
+        "PublicSubnetRoutetableBAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PublicRouteTable" },
+                "SubnetId": { "Ref": "PublicSubnetB" }
+            }           
+        },
+
+        "RoutetoInternet": {
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "VPCGatewayAttachment",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": { "Ref": "InternetGateway" },
+                "RouteTableId": { "Ref": "PublicRouteTable" }
+            }            
+        },        
+
+        "PrivateRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": { "Ref": "MyTestVPC" },
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "Private-RT" ]]} },
+                    { "Key": "Network", "Value": "Private" }
+                ]
+            }           
+        },
+
+        "PrivateSubnetRoutetableAAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PrivateRouteTable" },
+                "SubnetId": { "Ref": "PrivateSubnetA" }
+            }
+        },
+
+        "PrivateSubnetRoutetableBAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PrivateRouteTable" },
+                "SubnetId": { "Ref": "PrivateSubnetB" }
+            }
+        },
+
+        "PrivateSubnetRoutetableCAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "PrivateRouteTable" },
+                "SubnetId": { "Ref": "PrivateSubnetC" }
+            }         
+        },
+
+        "RoutetoPrivateRoutetable": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "RouteTableId": { "Ref": "PrivateRouteTable" },
+                "NatGatewayId" : { "Ref" : "NATGateway" }
+            }          
+        },
+
+        "webserver1": {
+            "Type": "AWS::EC2::Instance",            
+            "Properties": {
+                "ImageId": { "Fn::FindInMap": [ "ResgionArchAMI", { "Ref": "AWS::Region" }, { "Fn::FindInMap": [ "AWSInstanceMapping", { "Ref": "NodeInstanceType" }, "Arch" ] } ] }, 
+                "InstanceType": { "Ref": "NodeInstanceType" },
+                "KeyName" : { "Ref": "KeyName" },
+                "SecurityGroupIds": [{ "Ref": "PrivateInstanceSG" }],
+                "SubnetId": { "Ref": "PrivateSubnetA" },
+                "AvailabilityZone": { "Ref":"AvailabilityZone1" },
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "webserver1" ]]} },
+                    { "Key": "Network", "Value": "Private web server Instance for Nginx front end Angular" }
+                ]
+            }            
+        }, 
+
+        "webserver2": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": { "Fn::FindInMap": [ "ResgionArchAMI", { "Ref": "AWS::Region" }, { "Fn::FindInMap": [ "AWSInstanceMapping", { "Ref": "NodeInstanceType" }, "Arch" ] } ] }, 
+                "InstanceType": { "Ref": "NodeInstanceType" },
+                "KeyName" : { "Ref": "KeyName" },
+                "SecurityGroupIds": [{ "Ref": "PrivateInstanceSG" }],
+                "SubnetId": { "Ref": "PrivateSubnetA" },
+                "AvailabilityZone": { "Ref":"AvailabilityZone2" },
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "webserver2" ]]} },
+                    { "Key": "Network", "Value": "Private web server Instance for Nginx back end node.js" }
+                ]
+            }            
+        },  
+        
+        "LinuxBastionHost": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": { "Fn::FindInMap": [ "ResgionArchAMI", { "Ref": "AWS::Region" }, { "Fn::FindInMap": [ "AWSInstanceMapping", { "Ref": "BastionInstanceType" }, "Arch" ] } ] }, 
+                "InstanceType": { "Ref": "BastionInstanceType" },
+                "KeyName" : { "Ref": "KeyName" },
+                "SecurityGroupIds": [{ "Ref": "BastionHostSG" }],
+                "SubnetId": { "Ref": "PublicSubnetA" },
+                "AvailabilityZone": { "Ref":"AvailabilityZone1" },
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "LinuxBastionHost" ]]} },
+                    { "Key": "Network", "Value": "Linux Bastion Host to connect AWS private instances" }
+                ]
+            }            
+        },
+
+        "Jenkins": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": { "Fn::FindInMap": [ "ResgionArchAMI", { "Ref": "AWS::Region" }, { "Fn::FindInMap": [ "AWSInstanceMapping", { "Ref": "NodeInstanceType" }, "Arch" ] } ] }, 
+                "InstanceType": { "Ref": "NodeInstanceType" },
+                "KeyName" : { "Ref": "KeyName" },
+                "SecurityGroupIds": [{ "Ref": "JenkinsSG" }],
+                "SubnetId": { "Ref": "PublicSubnetA" },
+                "AvailabilityZone": { "Ref":"AvailabilityZone1" },
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "Jenkins" ]]} },
+                    { "Key": "Network", "Value": "Jenkins" }
+                ]
+            }            
+        }, 
+
+        "NATGateway": {
+            "Type" : "AWS::EC2::NatGateway",
+            "DependsOn" : "VPCGatewayAttachment",
+            "Properties": {
+                "AllocationId" : { "Fn::GetAtt" : ["EIP", "AllocationId"]},
+                "SubnetId": { "Ref": "PublicSubnetA" },
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "natgateway" ]]} },
+                    { "Key": "Network", "Value": "Private subnet machines connectivity" }
+                ]
+            }
+        },
+        "EIP" : {
+            "DependsOn" : "VPCGatewayAttachment",
+            "Type" : "AWS::EC2::EIP",
+            "Properties" : {
+               "Domain" : "vpc"
+            }
+         },
+
+        "BastionHostSG": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allows SSH port only",
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": { "Ref": "RemoteAccessCIDR" },
+                        "FromPort": "22",
+                        "IpProtocol": "tcp",
+                        "ToPort": "22"
+                    }
+                ],
+                "VpcId": { "Ref": "MyTestVPC" },
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "BastionHostSG" ]]} },
+                    { "Key": "Network", "Value": "Public Instance" }
+                ]
+            }           
+        },
+
+        "JenkinsSG": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allows SSH and Jenkins port",
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": { "Ref": "VPCCIDR" },
+                        "FromPort": "22",
+                        "IpProtocol": "tcp",
+                        "ToPort": "22"
+                    },
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "8080",
+                        "IpProtocol": "tcp",
+                        "ToPort": "8080"
+                    }                    
+                ],
+                "VpcId": { "Ref": "MyTestVPC" },
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "JenkinsSG" ]]} },
+                    { "Key": "Network", "Value": "Jenkins Instance" }
+                ]
+            }           
+        },
+
+        "PrivateInstanceSG": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allows SSH port",
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": { "Ref": "VPCCIDR" },
+                        "FromPort": "22",
+                        "IpProtocol": "tcp",
+                        "ToPort": "22"
+                    }
+                ],
+                "VpcId": { "Ref": "MyTestVPC" },
+                "Tags": [
+                    { "Key": "Name", "Value": { "Fn::Join": [ "-", [{ "Ref":"AWS::StackName" }, "PrivateInstanceSG" ]]} },
+                    { "Key": "Network", "Value": "Private Instance" }
+                ]
+            }           
+        }
+
+    }    
+
+}
